@@ -3,7 +3,7 @@
 #   bash .kit/install.sh          (git clone <주소> .kit 로 받은 경우)
 #   bash probe-kit/install.sh     (그냥 git clone <주소> 로 받은 경우)
 #   cd probe-kit && bash install.sh
-# 하는 일: 작업 폴더 루트 찾기, .kit 경로 맞추기, 템플릿 복사(기존 파일은 안 덮어씀),
+# 하는 일: 작업 폴더 루트 찾기, .kit 경로 맞추기, AGENTS.md는 루트에, 작업 문서는 work/에 복사(기존 파일은 안 덮어씀),
 #          .kit를 git 추적에서 제외, 환경 점검.
 set -u
 KIT="$(cd "$(dirname "$0")" && pwd)"
@@ -37,8 +37,9 @@ if [ "$KIT" != "$ROOT/.kit" ]; then
   fi
 fi
 
+mkdir -p "$ROOT/work"
 for f in TASK.md DECISIONS.md HANDOFF.md; do
-  if [ -e "$ROOT/$f" ]; then echo "유지: $f (이미 있음)"; else cp "$KIT/templates/$f" "$ROOT/$f"; echo "복사: $f"; fi
+  if [ -e "$ROOT/work/$f" ]; then echo "유지: work/$f (이미 있음)"; else cp "$KIT/templates/$f" "$ROOT/work/$f"; echo "복사: work/$f"; fi
 done
 
 if [ -e "$ROOT/AGENTS.md" ] && ! grep -q "Token discipline" "$ROOT/AGENTS.md"; then

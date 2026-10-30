@@ -1,4 +1,4 @@
-Review only. Do NOT edit code. Baseline: TASK.md and `git diff` (or changes since the last commit).
+Review only. Do NOT edit code. Baseline: work/TASK.md and `git diff` (or changes since the last commit).
 
 Report at most 5 problems, most severe first. For each: file:line, the input that breaks it, and a one-line fix.
 - Done criteria that are missing, or tests that do not actually verify them

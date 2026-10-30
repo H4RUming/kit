@@ -19,20 +19,38 @@ git clone https://github.com/<아이디>/probe-kit .kit && bash .kit/install.sh
 어떻게 받았든 install.sh가 작업 폴더를 찾고, 키트 폴더 이름을 `.kit`(숨김 폴더)로 바꿔줌. 여러 번 실행해도 기존 파일은 안 덮어씀.
 codex를 먼저 켜버렸으면 install 후 codex를 껐다 다시 켜기 (AGENTS.md는 시작할 때만 읽음).
 
+설치 후 구조 (루트에는 AGENTS.md만 추가됨):
+
+```
+과제폴더/
+  AGENTS.md          Codex가 자동으로 읽는 규칙
+  README.md ...      과제 파일들 (그대로)
+  work/
+    TASK.md          과제 계약서
+    DECISIONS.md     결정 기록
+    HANDOFF.md       인계 문서
+    VERIFY.md        테스트와 수동 확인 기록 (t.py가 자동 생성)
+    webchecks.json   웹 기능 체크 (웹 과제일 때)
+    server.log       서버 로그 (tee로 저장)
+  .kit/              도구 (숨김)
+```
+
 ## 구성
 
 - templates/AGENTS.md: Codex 작업 규칙. 합의 전 구현 금지, 토큰 규칙, 검증, 기록, 최소 변경 원칙(Ponytail에서 발췌, MIT)
-- templates/TASK.md, DECISIONS.md, HANDOFF.md: 과제 계약서, 결정 기록, 인계 문서
+- templates/TASK.md, DECISIONS.md, HANDOFF.md: 과제 계약서, 결정 기록, 인계 문서. 설치하면 `work/`에 복사됨
 - tools/peek.py: 폴더 트리, CSV 컬럼 타입/결측/범위, JSON 구조, .py 함수 목록, 줄 범위 출력, `--env` 환경 점검
-- tools/t.py: 테스트 실행 후 요약만 출력. 실패 시 마지막 40줄. VERIFY.md에 자동 기록. 테스트 0개나 전부 skip이면 exit 2. 바뀐 파일이 없으면 다시 안 돌리고 `[SAME]`, 코드를 바꿨는데 같은 실패가 반복되면 `[경고]`
+- tools/t.py: 테스트 실행 후 요약만 출력. 실패 시 마지막 40줄. work/VERIFY.md에 자동 기록. 테스트 0개나 전부 skip이면 exit 2. 바뀐 파일이 없으면 다시 안 돌리고 `[SAME]`, 코드를 바꿨는데 같은 실패가 반복되면 `[경고]`
+- tools/webcheck.py: 브라우저 없이 HTTP로 웹 기능 확인. `smoke`(페이지 요약), `links`(깨진 링크와 정적 파일), `run work/webchecks.json`(기능 체크, t.py로 돌리면 work/VERIFY.md 기록), `init`(스펙 예시). 화면 조작이 아니라서 Computer Use에 해당하지 않음
 - tools/q.py: 출력이 긴 명령(설치, 빌드, 스크립트)을 돌리고 전체 로그는 `.kit/.state/logs/`에 저장. 화면에는 종료 코드, 에러로 보이는 줄, 마지막 몇 줄만
 - install.sh: 템플릿 복사, `.kit/`를 git 추적에서 제외, 환경 점검
 - prompts/: 단계별 지시 카드. 붙여넣지 말고 `.kit/prompts/3_review.md 읽고 그대로 해`처럼 파일을 가리키면 됨
-  - 1_kickoff: README 읽고 TASK.md 초안, README와 데이터의 빈틈 최대 5개 (질문은 내가 직접, 코드 금지)
+  - 1_kickoff: README 읽고 work/TASK.md 초안, README와 데이터의 빈틈 최대 5개 (질문은 내가 직접, 코드 금지)
   - 2_build: 완료 조건 하나만 구현, 계획 3줄 먼저, t.py 통과하면 커밋하고 멈춤. `[C?]`를 조건 번호로 바꿔서 지시
   - 3_review: 수정 없이 diff 검토만. 누락, 경계값, 과설계, 문서와 코드 불일치. 새 세션에서 돌리면 편향이 덜함
-  - 4_handoff: HANDOFF.md 갱신 후 새 세션으로 넘어갈 때
+  - 4_handoff: work/HANDOFF.md 갱신 후 새 세션으로 넘어갈 때
   - 5_presubmit: 필수 파일 확인, 한계 최신화, 예상 서술형 질문 6개 (답은 본인이 머릿속으로)
+  - 6_manual: webcheck로 못 보는 화면/클릭 동작을 내가 Browser에서 확인할 체크리스트 (최대 5단계). 결과를 알려주면 work/VERIFY.md에 MANUAL로 기록
 
 ## 오늘 밤 (시험 전)
 
@@ -58,7 +76,7 @@ codex를 먼저 켜버렸으면 install 후 codex를 껐다 다시 켜기 (AGENT
 3. `codex` 실행, `/status`로 모델과 권한 확인
 4. `AGENTS.md 규칙 세 줄로 요약해봐`로 규칙을 읽었는지 확인
 5. `.kit/prompts/1_kickoff.md 읽고 그대로 해`
-6. 담당자 에이전트에게 직접 질문하고, 답을 TASK.md "확인된 사실"과 "담당자 확인"에 반영
+6. 담당자 에이전트에게 직접 질문하고, 답을 work/TASK.md "확인된 사실"과 "담당자 확인"에 반영
 7. 조건마다 `.kit/prompts/2_build.md 읽고 C1으로 해` 반복. 큰 조건이 끝나면 3_review
 8. 대화가 길어지면 4_handoff 후 새 세션, 제출 전 5_presubmit
 
@@ -67,14 +85,22 @@ codex를 먼저 켜버렸으면 install 후 codex를 껐다 다시 켜기 (AGENT
 새 터미널 탭(+)을 열고 서버 전용으로 쓴다. 이 탭은 닫지 않는다.
 
 ```
-python3 app.py 2>&1 | tee server.log
+python3 app.py 2>&1 | tee work/server.log
 ```
 
 - `app.py` 자리에 실제 실행 파일이나 명령을 넣는다 (예: `python3 -m uvicorn main:app --host 0.0.0.0 --port 8000`)
 - 서버는 `0.0.0.0`에 바인딩해야 Browser 미리보기에서 열린다
 - 터미널에 찍힌 실제 포트를 Browser 도구의 PORT 칸에 넣고 원형 화살표
-- Codex에게는 `서버 로그는 server.log에 있어. tail -n 30으로 봐`라고 알려준다
+- Codex에게는 `서버 로그는 work/server.log에 있어. tail -n 30으로 봐`라고 알려준다
 - 끌 때는 그 탭에서 Ctrl+C (선택 영역이 없는 상태에서)
+
+## 웹 과제 검증 흐름
+
+1. 내가 서버 띄우기 (위 섹션)
+2. `python3 .kit/tools/webcheck.py smoke http://127.0.0.1:<포트> /` 로 페이지가 뜨는지, 폼과 버튼이 있는지
+3. Codex에게: `C2 완료 조건을 work/webchecks.json에 체크로 추가하고 t.py로 webcheck run 돌려`
+4. JS 화면이나 클릭 흐름은: `.kit/prompts/6_manual.md 읽고 C2로 해` 후 Browser에서 직접 확인하고 결과를 알려주기
+5. 서버 코드를 고쳤으면 서버 재시작 후 다시 run (webcheck는 [SAME] 캐시를 안 씀)
 
 ## 토큰 운영 규칙 (사람 쪽)
 
@@ -104,26 +130,26 @@ Codex는 매 턴 그 세션의 대화 전체를 다시 입력으로 보낸다. �
 
 | 경과 | 할 일 |
 |---|---|
-| 0~25분 | 설치, README, 담당자 인터뷰, TASK.md 확정 |
+| 0~25분 | 설치, README, 담당자 인터뷰, work/TASK.md 확정 |
 | 25~140분 | 조건 단위로 구현, t.py 검증, 커밋 반복. 100분에 범위 재점검 |
 | 140분 | 기능 동결. 버그 수정과 검증만 |
-| 150분 | HANDOFF.md, DECISIONS.md 정리. 직접 읽으면서 서술형 대비 |
+| 150분 | work/HANDOFF.md, work/DECISIONS.md 정리. 직접 읽으면서 서술형 대비 |
 | 165분 | 제출 시작 (공식 권고: 종료 약 10분 전) |
 
 ## 서술형 대비 (문항당 5분, 문항 수는 응시 화면 기준)
 
 확정 후 질문 생성에 최대 10분 대기. 제출물과 작업 기록을 바탕으로 문항이 나옴. AI와 복붙 금지, 이전 문항으로 못 돌아감, 시간이 끝나면 입력한 내용으로 자동 확정. 답은 이 순서로:
-1. 내가 내린 결정과 근거 (DECISIONS.md)
+1. 내가 내린 결정과 근거 (work/DECISIONS.md)
 2. 내 코드의 구체적인 약점이나 한계
 3. 그게 왜 위험한지, 어떤 입력에서 깨지는지
 4. 다음에 무엇을 검증하고 고칠지
 
-제출 전에 HANDOFF.md의 "알려진 한계와 위험"을 꼭 직접 읽어둘 것.
+제출 전에 work/HANDOFF.md의 "알려진 한계와 위험"을 꼭 직접 읽어둘 것.
 
 ## 세션 관리
 
 대화가 길어지면 compact를 반복하지 말고:
-`HANDOFF.md 갱신해` 후 새 세션에서 `HANDOFF.md, TASK.md, DECISIONS.md만 읽고 이어가`.
+`work/HANDOFF.md 갱신해` 후 새 세션에서 `work/HANDOFF.md, work/TASK.md, work/DECISIONS.md만 읽고 이어가`.
 
 ## 출처
 

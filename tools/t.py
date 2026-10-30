@@ -7,7 +7,7 @@
   python3 t.py --note "C1 경계값" -- python3 -m unittest test_rules
 
 출력: 통과면 한 줄, 실패면 실패 요약과 마지막 N줄.
-기록: 실행할 때마다 VERIFY.md에 한 줄 추가 (--no-log로 끔).
+기록: 실행할 때마다 work/VERIFY.md에 한 줄 추가 (--no-log로 끔).
 반복 방지:
   - 직전 실행 이후 바뀐 파일이 없고 명령도 같으면 다시 돌리지 않고 [SAME]과 직전 결과만 출력 (--force로 강제 실행)
   - 코드가 바뀌었는데 같은 실패가 연속되면 [경고]를 출력
@@ -30,16 +30,24 @@ SKIP = ("node_modules", ".venv", "venv", ".kit", ".git", "__pycache__", ".pytest
         Path(__file__).resolve().parent.parent.name)  # 키트 폴더 이름이 달라도 제외
 STATE = Path(__file__).resolve().parent.parent / ".state" / "t.json"
 IGNORE_FILES = {"VERIFY.md", "HANDOFF.md", "DECISIONS.md", "TASK.md"}
+WORK_DIR = "work"  # 작업 문서 폴더. 지문 계산에서 제외
 
 
-def fingerprint():
-    """작업 폴더 파일의 경로, 크기, 수정 시각으로 만든 해시. 문서 파일은 제외."""
+CODE_EXT = (".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".vue", ".svelte", ".html", ".htm",
+            ".css", ".scss", ".toml", ".yaml", ".yml", ".cfg", ".ini", ".sql", ".sh", ".env.example")
+
+
+def fingerprint(code_only=False):
+    """작업 폴더 파일의 경로, 크기, 수정 시각으로 만든 해시. 문서 파일은 제외.
+    code_only=True면 소스 파일만 본다 (서버가 쓰는 DB, 로그, 출력 파일 변화는 무시)."""
     h = hashlib.sha1()
     n = 0
     for dp, dns, fns in os.walk("."):
-        dns[:] = sorted(d for d in dns if d not in SKIP)
+        dns[:] = sorted(d for d in dns if d not in SKIP and not (dp == "." and d == WORK_DIR))
         for f in sorted(fns):
             if f in IGNORE_FILES or f.endswith((".pyc", ".log")):
+                continue
+            if code_only and not f.endswith(CODE_EXT):
                 continue
             p = os.path.join(dp, f)
             try:
@@ -118,11 +126,14 @@ def summarize(cmd, code, out):
         if code == 0 and "skipped=" in tail and re.search(rf"skipped={n}\b", tail):
             return "NO-TESTS", f"Ran {n}, 전부 skip"
         return ("PASS" if code == 0 else "FAIL"), f"Ran {n} tests {tail}".strip()
+    if code == 2 and "webcheck" in " ".join(cmd):
+        return "NO-TESTS", (lines[-1] if lines else "webcheck: 체크 0개 또는 서버 응답 없음")
     return ("PASS" if code == 0 else "FAIL"), (lines[-1] if lines else "(출력 없음)")
 
 
 def log(status, cmd, summary, secs, note):
-    p = Path("VERIFY.md")
+    p = Path(WORK_DIR) / "VERIFY.md"
+    p.parent.mkdir(exist_ok=True)
     new = not p.exists()
     with open(p, "a", encoding="utf-8") as f:
         if new:
@@ -140,7 +151,7 @@ def main():
     ap = argparse.ArgumentParser(description="테스트 실행 후 요약 출력")
     ap.add_argument("--tail", type=int, default=40, help="실패 시 출력할 마지막 줄 수")
     ap.add_argument("--timeout", type=int, default=600)
-    ap.add_argument("--note", default="", help="VERIFY.md에 남길 메모 (예: 완료 조건 번호)")
+    ap.add_argument("--note", default="", help="work/VERIFY.md에 남길 메모 (예: 완료 조건 번호)")
     ap.add_argument("--no-log", action="store_true")
     ap.add_argument("--force", action="store_true", help="바뀐 파일이 없어도 다시 실행")
     a = ap.parse_args(argv)
@@ -152,9 +163,12 @@ def main():
 
     st = load_state()
     fp = fingerprint()
+    code_fp = fingerprint(code_only=True)
     key = " ".join(cmd)
     last = st.get("last", {})
-    if not a.force and fp and last.get("fp") == fp and last.get("cmd") == key:
+    # webcheck는 서버 상태에 따라 결과가 바뀌므로(재시작 등) 파일이 같아도 다시 돌린다.
+    live = "webcheck" in key
+    if not a.force and not live and fp and last.get("fp") == fp and last.get("cmd") == key:
         print(f"[SAME] 직전 실행({last.get('at')}) 이후 바뀐 파일 없음. 다시 돌리지 않음 (--force로 강제).")
         print(f"  직전 결과: {last.get('status')}  {last.get('summary')}")
         return last.get("code", 1)
@@ -189,7 +203,11 @@ def main():
     streak = 0
     if status == "FAIL":
         sig = fail_signature(summary, out)
-        streak = st.get("streak", 0) + 1 if st.get("fail_sig") == sig else 1
+        if st.get("fail_sig") == sig:
+            # 파일이 바뀌었을 때만 "고쳤는데 또 실패"로 센다 (webcheck 재실행 등은 제외)
+            streak = st.get("streak", 0) + (1 if code_fp != last.get("code_fp") else 0)
+        else:
+            streak = 1
         st["fail_sig"], st["streak"] = sig, streak
         if streak >= 2:
             print(f"[경고] 코드가 바뀌었는데 같은 실패가 {streak}회 연속. 같은 방식의 수정을 멈추고, "
@@ -197,7 +215,7 @@ def main():
     else:
         st.pop("fail_sig", None)
         st["streak"] = 0
-    st["last"] = {"fp": fp, "cmd": key, "status": status, "summary": summary,
+    st["last"] = {"fp": fp, "code_fp": code_fp, "cmd": key, "status": status, "summary": summary,
                   "code": rc, "at": datetime.now().strftime("%H:%M:%S")}
     save_state(st)
     return rc

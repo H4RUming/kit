@@ -1,11 +1,11 @@
 # HANDOFF
 
-새 세션은 이 파일, TASK.md, DECISIONS.md만 읽고 이어간다.
+새 세션은 이 파일, work/TASK.md, work/DECISIONS.md만 읽고 이어간다.
 
 ## 현재 상태
 - 완료된 조건:
 - 진행 중:
-- 마지막 검증 결과 (VERIFY.md 마지막 줄):
+- 마지막 검증 결과 (work/VERIFY.md 마지막 줄):
 
 ## 다음에 할 일 (우선순위 순)
 1.
