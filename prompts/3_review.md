@@ -1,9 +1,9 @@
-코드는 고치지 말고 검토만 해. 기준은 TASK.md와 `git diff`(또는 마지막 커밋 이후 변경)야.
+Review only. Do NOT edit code. Baseline: TASK.md and `git diff` (or changes since the last commit).
 
-다음 항목을 확인하고, 문제를 심각도 순으로 최대 5개 보고해. 각 항목에는 파일:줄, 어떤 입력에서 깨지는지, 고치는 방법을 한 줄씩 적어.
-- 완료 조건 중 빠졌거나 테스트가 실제로는 검증하지 않는 것
-- 경계값(같음, 빈 값, 중복, 시간대), 잘못된 입력, 에러 처리
-- 요청받지 않은 기능, 추상화, 의존성 같은 과설계
-- 문서(TASK, DECISIONS, HANDOFF)와 실제 코드가 다른 곳
+Report at most 5 problems, most severe first. For each: file:line, the input that breaks it, and a one-line fix.
+- Done criteria that are missing, or tests that do not actually verify them
+- Edge cases (equality, empty, duplicates, time zones), bad input, error handling
+- Over-engineering: features, abstractions or dependencies nobody asked for
+- Places where TASK/DECISIONS/HANDOFF disagree with the actual code
 
-문제가 없으면 "문제 없음"과 확인한 범위만 적어.
+If nothing is wrong, say "문제 없음" and list what you checked.

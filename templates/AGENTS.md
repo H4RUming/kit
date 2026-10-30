@@ -1,63 +1,62 @@
-# 작업 규칙
+# Agent Rules
 
-우선순위: 과제 README와 운영 규정 > 사용자의 지시 > 이 파일. 충돌하면 위를 따르고, 충돌했다는 사실을 한 줄로 알린다.
+Priority: task README and exam rules > user instructions > this file. If they conflict, follow the higher one and say so in one line.
 
-## 작업 순서
+## Language
+- Reply to the user in Korean. Write TASK.md, DECISIONS.md, HANDOFF.md in Korean. Code, identifiers and commit messages may be English.
 
-1. 이해: 과제 README와 과제에 직접 관련된 코드만 읽는다. 처음 보는 파일, 데이터, 폴더는 `python3 .kit/tools/peek.py <경로>`로 요약부터 보고, 필요한 범위만 연다.
-2. 합의: 구현 전에 TASK.md를 채운다(목표, 확인된 사실, 가정, 열린 질문, 하지 않을 것, 완료 조건). 열린 질문은 사용자에게 넘긴다. 사용자가 TASK.md를 확인하기 전에는 코드를 쓰지 않는다.
-3. 구현: 완료 조건을 하나씩 처리한다. 아래 "최소 변경 원칙"을 따른다.
-4. 검증: 변경할 때마다 `python3 .kit/tools/t.py`로 테스트한다(명령 지정은 `python3 .kit/tools/t.py -- <명령>`). 실행해서 통과하지 않은 것은 완료라고 하지 않는다. 실행하지 못한 검사는 "미검증"이라고 적는다.
-5. 기록: 의미 있는 결정마다 DECISIONS.md에 한 줄(결정, 이유, 버린 대안). 완료 조건 하나를 통과하면 로컬 커밋한다. git 저장소가 아니면 `git init` 전에 사용자에게 묻는다.
-6. 인계: 큰 단계가 끝날 때와 사용자가 요청할 때 HANDOFF.md를 갱신한다. 새 세션은 HANDOFF.md, TASK.md, DECISIONS.md만 읽고 이어간다.
+## Hard rules (never break)
+1. NEVER use Computer Use (screen automation) at any stage: no mouse/keyboard control, no screenshot-driven actions, no automating the built-in Browser. The user checks the Browser manually.
+2. Ask the user BEFORE using any browser automation tool (e.g. Playwright).
+3. NEVER git push, send files outside, print keys/tokens, modify or kill exam platform settings or proctoring/connection processes, or add dependencies nobody asked for.
+4. NO code before the user confirms TASK.md.
+5. NEVER claim something works unless a test run passed. Mark checks you could not run as "미검증".
+6. Same failure, same kind of fix: max 2 attempts. When t.py prints `[경고]` (repeated failure), STOP. Report 2 cause hypotheses and how to check each, then wait.
 
-## 반복과 토큰 줄이기
+## Workflow
+1. Understand: read the task README and only the code it touches. For any unfamiliar file, data or folder, run `python3 .kit/tools/peek.py <path>` first, then open only the needed range.
+2. Agree: fill TASK.md (goal, facts with source, assumptions, open questions, out of scope, done criteria). Hand open questions to the user.
+3. Build: one done criterion at a time, following "Minimal change" below.
+4. Verify: after every change run `python3 .kit/tools/t.py` (custom command: `python3 .kit/tools/t.py -- <cmd>`).
+5. Record: one line in DECISIONS.md per meaningful decision (decision | reason | rejected option). Local commit after each passed criterion. If the folder is not a git repo, ask before `git init`.
+6. Hand off: update HANDOFF.md at the end of each major step or when asked. A new session reads only HANDOFF.md, TASK.md, DECISIONS.md.
 
-- 같은 실패에 같은 방식의 수정은 2번까지만 한다. t.py가 `[경고] 같은 실패 N회 연속`을 내면 즉시 멈추고, 원인 가설 2개와 각각 확인할 방법을 사용자에게 보고한 뒤 지시를 기다린다.
-- 수정 전에 실패 원인을 한 줄로 먼저 적는다. 원인을 모르면 고치지 말고 확인부터 한다(로그의 해당 줄, 입력값, 작은 재현 코드).
-- t.py가 `[SAME]`을 내면 파일을 바꾸기 전까지 다시 실행하지 않는다.
-- 출력이 길 수 있는 명령(설치, 빌드, 스크립트 실행)은 `python3 .kit/tools/q.py -- <명령>`으로 돌린다. 더 필요하면 출력된 로그 파일에서 `rg`나 `sed -n`으로 필요한 줄만 본다.
-- 설치는 조용한 옵션으로(`pip install -q`). 설치 전에 `python3 .kit/tools/peek.py --env`로 이미 있는지 확인하고, 표준 라이브러리를 먼저 쓴다.
-- 큰 파일을 통째로 출력하지 않는다. peek, `rg -n`, `sed -n 'A,Bp'`로 필요한 부분만 본다. 이미 읽은 파일은 바뀌지 않았으면 다시 읽지 않는다.
-- 서버처럼 계속 실행되는 프로세스는 직접 띄우지 않는다. 실행 명령을 알려주고, 사용자가 별도 터미널에서 `<명령> 2>&1 | tee server.log`로 띄운다. 로그는 `tail -n 30 server.log`로 본다.
-- 답변은 짧게 쓴다: 바꾼 파일, 검증 결과, 남은 위험. 이미 파일에 쓴 코드나 긴 출력을 답변에 다시 붙이지 않는다.
+## Token discipline
+- Before fixing a failure, state its cause in one line. If unknown, investigate first (the log line, the input, a tiny repro). Do not guess-edit.
+- `[SAME]` from t.py means nothing changed: do not rerun until you edit a file.
+- Run long-output commands (install, build, scripts) via `python3 .kit/tools/q.py -- <cmd>`. Then use `rg`/`sed -n` on the printed log path for details.
+- Install quietly (`pip install -q`), and only after `python3 .kit/tools/peek.py --env` shows it is missing. Prefer the standard library.
+- Never dump a large file. Use peek, `rg -n`, `sed -n 'A,Bp'`. Do not reread unchanged files.
+- Do not start long-running processes (servers). Give the command; the user runs it in another terminal as `<cmd> 2>&1 | tee server.log`. Read it with `tail -n 30 server.log`.
+- Keep replies short: files changed, test result, remaining risk. Do not paste code already written to files or long outputs.
 
-## 시험 환경
+## Exam environment
+- If the task specifies required documents or file names, write there and move TASK/DECISIONS/HANDOFF content into them. No duplicate content.
+- Bind web servers to `0.0.0.0` and print the real port. localhost-only will not open in the Browser preview.
+- Avoid heavy processes (loading huge data at once, several servers). Out-of-memory kills are not compensated.
 
-- 과제 안내가 필수 문서 이름이나 양식을 지정하면 그 파일에 쓰고, TASK.md, DECISIONS.md, HANDOFF.md 내용은 거기로 옮긴다. 같은 내용을 두 곳에 쓰지 않는다.
-- 웹 서버는 `0.0.0.0`에 바인딩하고 실제 포트를 출력하게 만든다. localhost에만 바인딩하면 Browser 미리보기가 안 열린다.
-- 무거운 프로세스(대용량 전체 로드, 여러 서버 동시 실행)는 피한다. 메모리 부족으로 죽으면 구제받지 못한다.
+## End of every reply
+One or two lines: what you did not check, and any risk the user must know.
 
-## 금지
+## Minimal change
+Adapted from Ponytail AGENTS.md (DietrichGebert/ponytail, MIT License, Copyright (c) 2026 DietrichGebert).
 
-- Computer Use(화면 자동 조작)는 어떤 단계에서도 절대 쓰지 않는다. 마우스나 키보드 조작, 스크린샷 기반 조작, 내장 Browser 자동 조작 모두 포함한다. Browser 화면 확인은 사용자가 직접 한다.
-- Playwright 같은 브라우저 자동화 도구는 쓰기 전에 반드시 사용자에게 먼저 묻는다.
-- git push, 외부 전송, 시험 플랫폼 설정이나 감독/연결 프로세스 수정 또는 종료, 키나 토큰 출력, 요청받지 않은 의존성 추가.
+Before writing: read the task and the code it touches. List every place the change must reach (callers, tests, fixtures, config, exports) and what it could break for users (data loss or exposure, broken callers). That is scope. Extra features are not.
 
-## 답변 마무리
+Take the first option that fully works:
+1. Does it need to exist? Skip features, options and flexibility nobody asked for, and name them in one line.
+2. Already in this codebase? Use it the way surrounding code does.
+3. Standard library or platform feature? Use it.
+4. Installed dependency? Use it. Never add a dependency for a few lines.
+5. One readable line? One line.
+6. Otherwise, the minimum code that works.
 
-모든 답변 끝에 한두 줄로 적는다: 확인하지 않은 것, 사용자가 알아야 할 위험.
+- Lazy about the solution, never about the change: fix the callers, tests and fixtures your change breaks.
+- No abstraction, wrapper, option, config or "for later" code nobody asked for. Keep existing structure and conventions. Deletion beats addition.
+- Comment only the why, in one line.
+- Bug fix: grep every caller first, then fix the root cause once in shared code.
+- Between equal-size options, pick the one correct on edge cases.
+- New non-trivial logic (branch, loop, parser, money, security) gets one small test or assert.
+- Known-limit shortcut gets a comment: `shortcut: <limit>, <when to upgrade>`.
 
-## 최소 변경 원칙
-
-출처: Ponytail AGENTS.md (DietrichGebert/ponytail, MIT License, Copyright (c) 2026 DietrichGebert). 요약해서 번역함.
-
-쓰기 전에: 과제와 그 과제가 건드리는 코드를 읽는다. 변경이 닿아야 하는 곳(호출부, 테스트, fixture, 설정, export)을 모두 나열한다. 데이터 손실이나 노출, 동작이 깨지는 호출부처럼 사용자에게 피해가 갈 지점을 확인한다. 여기까지가 범위이고, 추가 기능은 범위가 아니다.
-
-완전히 동작하는 첫 번째 선택지를 고른다:
-1. 꼭 있어야 하나? 아무도 요청하지 않은 기능, 옵션, 확장성은 빼고 뺀 것을 한 줄로 밝힌다.
-2. 이 코드베이스에 이미 있나(헬퍼, 컴포넌트, 패턴)? 주변 코드와 같은 방식으로 쓴다.
-3. 표준 라이브러리나 플랫폼 기능으로 되나? 그걸 쓴다.
-4. 이미 설치된 의존성으로 되나? 그걸 쓴다. 몇 줄 때문에 의존성을 추가하지 않는다.
-5. 한눈에 읽히는 한 줄로 되나? 한 줄로 쓴다.
-6. 아니면 동작하는 최소한의 코드를 쓴다.
-
-- 해법은 게으르게, 변경은 끝까지: 내 변경 때문에 깨지는 호출부, 테스트, fixture까지 고친다.
-- 요청받지 않은 추상화, 래퍼, 옵션, 설정, "나중을 위한" 코드는 넣지 않는다. 기존 구조와 컨벤션을 유지한다. 추가보다 삭제가 낫다.
-- 주석은 코드로 드러나지 않는 "왜"만 한 줄로 쓴다.
-- 버그 수정: 고치기 전에 그 함수의 호출부를 모두 grep하고, 공통 코드에서 근본 원인을 한 번에 고친다.
-- 크기가 같은 선택지 중에서는 경계값에서 맞는 쪽을 고른다.
-- 분기, 반복, 파서, 금액이나 보안 같은 로직을 새로 넣으면 작은 테스트나 assert 검사를 하나 남긴다.
-- 한계를 아는 지름길에는 주석을 단다: `shortcut: <한계>, <언제 고쳐야 하는지>`.
-
-절대 줄이지 않는 것: 신뢰 경계의 입력 검증, 데이터 손실을 막는 에러 처리, 보안, 접근성, 사용자가 요청한 것.
+Never cut: validation at trust boundaries, error handling that prevents data loss, security, accessibility, anything the user asked for.

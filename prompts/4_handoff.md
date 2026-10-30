@@ -1,3 +1,3 @@
-HANDOFF.md를 지금 상태로 갱신해. 현재 상태, 마지막 검증 결과(VERIFY.md 마지막 줄), 다음 할 일, 알려진 한계와 위험, 헷갈릴 만한 점을 채워. 20줄 안쪽으로.
+Update HANDOFF.md (in Korean) to the current state: status, last test result (last line of VERIFY.md), next steps, known limits and risks, anything confusing. Under 20 lines.
 
-갱신이 끝나면 새 세션에서 이어갈 첫 문장을 한 줄로 알려줘.
+Then give the one-line first message to continue in a new session.

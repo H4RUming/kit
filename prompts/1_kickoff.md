@@ -1,6 +1,6 @@
-AGENTS.md 규칙대로 진행해. 지금은 코드를 쓰지 마.
+Follow AGENTS.md. Do NOT write code yet.
 
-1. 과제 README와 과제가 지정한 파일을 읽어. 처음 보는 데이터나 폴더는 peek로 요약만 봐.
-2. TASK.md 초안을 채워. 확인된 사실에는 출처를 붙이고, 확인 안 된 것은 가정으로 분리해.
-3. 과제가 필수 문서나 파일명을 지정했으면 목록으로 알려줘.
-4. 질문 문장은 만들지 마. 대신 README와 데이터에서 불명확하거나 서로 안 맞는 지점을 최대 5개 짚어줘. 각각 근거 위치(파일:줄 또는 컬럼)와, 그게 결과를 어떻게 바꿀 수 있는지 한 줄씩.
+1. Read the task README and any files it names. For unfamiliar data or folders, use peek for a summary only.
+2. Draft TASK.md (in Korean). Give a source for each fact; put anything unconfirmed under assumptions.
+3. If the task requires specific documents or file names, list them.
+4. Do NOT write questions. Instead, point out up to 5 places in the README or data that are unclear or contradict each other. For each: location (file:line or column) and one line on how it could change the result.

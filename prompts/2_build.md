@@ -1,6 +1,6 @@
-TASK.md의 완료 조건 [C?] 하나만 처리해.
+Work on done criterion [C?] in TASK.md only.
 
-1. 시작 전에 바꿀 파일, 테스트 계획, 예상 위험을 3줄로 먼저 말해. 내가 확인하면 진행해.
-2. 테스트를 먼저 쓰거나 같이 써. 테스트 이름에 조건 번호를 넣어.
-3. `python3 .kit/tools/t.py --note "[C?]"`로 검증해. 통과하면 로컬 커밋하고 멈춰.
-4. 구현 중에 내린 결정은 DECISIONS.md에 한 줄씩 남겨.
+1. Before starting, give 3 lines: files to change, test plan, expected risk. Proceed after I confirm.
+2. Write the test first or together with the code. Put the criterion id in the test name.
+3. Verify with `python3 .kit/tools/t.py --note "[C?]"`. When it passes, make a local commit and STOP.
+4. Log each decision made during the work as one line in DECISIONS.md.

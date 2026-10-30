@@ -41,7 +41,7 @@ for f in TASK.md DECISIONS.md HANDOFF.md; do
   if [ -e "$ROOT/$f" ]; then echo "유지: $f (이미 있음)"; else cp "$KIT/templates/$f" "$ROOT/$f"; echo "복사: $f"; fi
 done
 
-if [ -e "$ROOT/AGENTS.md" ] && ! grep -q "반복과 토큰 줄이기" "$ROOT/AGENTS.md"; then
+if [ -e "$ROOT/AGENTS.md" ] && ! grep -q "Token discipline" "$ROOT/AGENTS.md"; then
   cp "$KIT/templates/AGENTS.md" "$ROOT/AGENTS.kit.md"
   echo "주의: 과제에 AGENTS.md가 이미 있음. 건드리지 않고 AGENTS.kit.md로 복사함."
   echo "      Codex에게 'AGENTS.kit.md도 읽고 따라. 과제 AGENTS.md와 충돌하면 과제 쪽을 따라'라고 지시하세요."
