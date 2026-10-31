@@ -1,5 +1,5 @@
 Ponytail (https://github.com/DietrichGebert/ponytail)
-templates/AGENTS.md의 '최소 변경 원칙'은 아래 라이선스 저작물을 요약 번역함.
+templates/AGENTS.md의 'Minimal change'와 docs/minimal.md는 아래 라이선스 저작물을 요약 번역함.
 
 MIT License
 

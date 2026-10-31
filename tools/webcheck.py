@@ -5,15 +5,25 @@
 사용:
   python3 webcheck.py smoke http://127.0.0.1:8000 / /about     페이지 요약(상태, 제목, 폼, 버튼, 링크)
   python3 webcheck.py links http://127.0.0.1:8000 --depth 1    같은 사이트 링크와 정적 파일 깨짐 확인
+  python3 webcheck.py ui http://127.0.0.1:8000 / /admin        화면 정적 검사(브라우저 없음): JS가 찾는 id가 HTML에 있는지,
+                                                               JS 문법(node), JS가 부르는 API가 404인지, id 중복, 라벨/alt
   python3 webcheck.py run webchecks.json                       스펙 파일의 체크 실행 (t.py로 돌리면 기록됨)
   python3 webcheck.py init                                     스펙 예시 출력
 
 run 공통 옵션: --base URL (스펙의 base 대신), --wait 초 (서버가 뜰 때까지 기다림, 기본 5)
+고유값: "{run}"은 실행마다 바뀌는 값. 같은 DB에 반복 실행해도 생성 데이터가 겹치지 않게 쓴다.
+비밀값: 스펙에 비밀번호를 쓰지 말고 "{env:ADMIN_PASSWORD}"처럼 환경변수를 참조한다. 출력에서는 ***로 가려진다.
+로그인: 쿠키는 체크 사이에 자동으로 유지된다(브라우저 쿠키 제한과 무관). 토큰 방식이면 save로 받아서
+        "headers": {"Authorization": "Bearer {token}"} 로 넘긴다.
 종료 코드: 0 전부 통과, 1 실패 있음, 2 체크 0개이거나 서버 응답 없음.
 JavaScript 실행은 안 한다. JS로 그리는 화면과 클릭 동작은 Browser에서 사람이 확인한다.
 """
 import http.cookiejar
+import shutil
+import subprocess
+import tempfile
 import json
+import os
 import re
 import sys
 import time
@@ -33,8 +43,12 @@ SPEC_EXAMPLE = {
          "expect": {"status": 200, "json": {"title": "우유"}}},
         {"name": "C3 빈 제목은 거부", "method": "POST", "path": "/api/todos", "json": {"title": ""},
          "expect": {"status": [400, 422]}},
-        {"name": "C4 로그인 폼", "method": "POST", "path": "/login", "form": {"user": "a", "pw": "b"},
+        {"name": "C4 틀린 비밀번호는 거부", "method": "POST", "path": "/login",
+         "form": {"user": "admin", "pw": "wrong"}, "expect": {"status": [200, 401], "not_contains": ["로그아웃"]}},
+        {"name": "C4 로그인 (비밀번호는 환경변수)", "method": "POST", "path": "/login",
+         "form": {"user": "admin", "pw": "{env:ADMIN_PASSWORD}"},
          "expect": {"status": 200, "redirect_to": "/dashboard", "not_contains": ["Traceback"]}},
+        {"name": "C4 로그인 후 보호 페이지 (쿠키 유지)", "path": "/dashboard", "expect": {"status": 200}},
     ],
 }
 
@@ -147,8 +161,30 @@ def dig(obj, path):
     return True, cur
 
 
+SECRETS = set()
+MISSING_ENV = set()
+
+
+def _env(name):
+    val = os.environ.get(name)
+    if val is None:
+        MISSING_ENV.add(name)
+        return "{env:" + name + "}"
+    if val:
+        SECRETS.add(val)
+    return val
+
+
+def mask(text):
+    for sec in SECRETS:
+        if len(sec) >= 3:
+            text = text.replace(sec, "***")
+    return text
+
+
 def subst(v, vars_):
     if isinstance(v, str):
+        v = re.sub(r"\{env:(\w+)\}", lambda m: _env(m.group(1)), v)
         return re.sub(r"\{(\w+)\}", lambda m: str(vars_.get(m.group(1), m.group(0))), v)
     if isinstance(v, dict):
         return {k: subst(x, vars_) for k, x in v.items()}
@@ -225,17 +261,23 @@ def cmd_run(args):
         return 2
     if not wait_for(base, wait):
         return no_server(base)
-    opener, vars_ = make_opener(), {}
+    # {run}: 실행마다 바뀌는 고유값. 생성 테스트가 이전 실행 데이터와 겹치지 않게 쓴다 (예: "title": "item-{run}")
+    opener, vars_ = make_opener(), {"run": str(int(time.time() * 1000))}
     passed = failed = 0
     for c in checks:
+        MISSING_ENV.clear()
         c = subst(c, vars_)
         name = c.get("name", c.get("path", "?"))
+        if MISSING_ENV:
+            failed += 1
+            print(f"FAIL {name}: 환경변수 없음 {sorted(MISSING_ENV)}. 서버를 띄운 터미널과 같은 값으로 export 했는지 확인")
+            continue
         method = c.get("method", "GET").upper()
         body = ("json", c["json"]) if "json" in c else (("form", c["form"]) if "form" in c else None)
         st, final, rh, text, ms = request(opener, method, base + c.get("path", "/"), body, c.get("headers"))
         if st is None:
             failed += 1
-            print(f"FAIL {name}: 연결 실패 ({text})")
+            print(mask(f"FAIL {name}: 연결 실패 ({text})"))
             continue
         errs, data = evaluate(c.get("expect", {}), st, final, rh, text, ms)
         for var, path in c.get("save", {}).items():
@@ -252,8 +294,8 @@ def cmd_run(args):
         if errs:
             failed += 1
             snippet = re.sub(r"\s+", " ", text)[:160]
-            print(f"FAIL {name} [{method} {c.get('path')}] {st} {ms:.0f}ms: " + "; ".join(errs))
-            print(f"     응답 앞부분: {snippet}")
+            print(mask(f"FAIL {name} [{method} {c.get('path')}] {st} {ms:.0f}ms: " + "; ".join(errs)))
+            print(mask(f"     응답 앞부분: {snippet}"))
         else:
             passed += 1
             print(f"PASS {name} ({st}, {ms:.0f}ms)")
@@ -349,6 +391,160 @@ def cmd_links(args):
     return 1 if broken else 0
 
 
+class UIPage(HTMLParser):
+    """ui 검사용: id, 라벨, 입력, 이미지, 버튼, 스크립트."""
+    def __init__(self):
+        super().__init__()
+        self.ids, self.label_for, self.inputs, self.imgs_no_alt = [], set(), [], 0
+        self.buttons, self.scripts, self.inline_js = [], [], []
+        self.viewport = False
+        self._label_depth, self._in_script, self._script_module, self._btn = 0, False, False, None
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if a.get("id"):
+            self.ids.append(a["id"])
+        if tag == "label":
+            self._label_depth += 1
+            if a.get("for"):
+                self.label_for.add(a["for"])
+        elif tag in ("input", "select", "textarea"):
+            typ = a.get("type", tag)
+            if typ not in ("hidden", "submit", "button", "reset", "image"):
+                labelled = bool(a.get("aria-label") or a.get("aria-labelledby") or self._label_depth)
+                self.inputs.append((a.get("id"), a.get("name"), typ, labelled))
+        elif tag == "img" and "alt" not in a:
+            self.imgs_no_alt += 1
+        elif tag == "button":
+            self._btn = {"label": a.get("aria-label") or "", "text": ""}
+            self.buttons.append(self._btn)
+        elif tag == "meta" and (a.get("name") or "").lower() == "viewport":
+            self.viewport = True
+        elif tag == "script":
+            if a.get("src"):
+                self.scripts.append((a["src"], a.get("type") == "module"))
+            else:
+                self._in_script, self._script_module = True, a.get("type") == "module"
+                self.inline_js.append(["", self._script_module])
+
+    def handle_endtag(self, tag):
+        if tag == "label":
+            self._label_depth = max(0, self._label_depth - 1)
+        elif tag == "script":
+            self._in_script = False
+        elif tag == "button":
+            self._btn = None
+
+    def handle_data(self, data):
+        if self._in_script and self.inline_js:
+            self.inline_js[-1][0] += data
+        elif self._btn is not None:
+            self._btn["text"] += data.strip()
+
+
+JS_ID_PATTERNS = [
+    r"getElementById\(\s*['\"]([\w-]+)['\"]",
+    r"querySelector(?:All)?\(\s*['\"]#([\w-]+)['\"]",
+    r"\$\(\s*['\"]#([\w-]+)['\"]",
+]
+JS_URL_PATTERN = r"(?:fetch|axios(?:\.\w+)?|\.(?:get|post|put|delete|patch))\(\s*[`'\"](/[^`'\"\s?#]*)"
+
+
+def node_check(code, module):
+    node = shutil.which("node")
+    if not node:
+        return None
+    suffix = ".mjs" if module else ".js"
+    with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False, encoding="utf-8") as f:
+        f.write(code)
+        path = f.name
+    try:
+        r = subprocess.run([node, "--check", path], capture_output=True, text=True, timeout=20)
+        if r.returncode == 0:
+            return ""
+        lines = [l for l in (r.stderr or r.stdout).splitlines() if l.strip()]
+        return " / ".join(lines[1:4])[:200] if len(lines) > 1 else (lines[0] if lines else "syntax error")
+    finally:
+        os.unlink(path)
+
+
+def cmd_ui(args):
+    if not args:
+        print("사용: webcheck.py ui URL [PATH ...]")
+        return 2
+    base, paths = args[0].rstrip("/"), args[1:] or ["/"]
+    if not wait_for(base, 3):
+        return no_server(base)
+    opener = make_opener()
+    fails = warns = 0
+    has_node = bool(shutil.which("node"))
+
+    def out(level, msg):
+        nonlocal fails, warns
+        if level == "FAIL":
+            fails += 1
+        else:
+            warns += 1
+        print(f"{level} {msg}")
+
+    for p in paths:
+        st, final, rh, html, _ = request(opener, "GET", base + p)
+        print(f"== {p} [{st}]")
+        if st is None or st >= 400:
+            out("FAIL", f"{p}: 페이지 응답 {st}")
+            continue
+        pg = UIPage()
+        pg.feed(html)
+        idset = set(pg.ids)
+        dups = sorted({i for i in pg.ids if pg.ids.count(i) > 1})
+        if dups:
+            out("FAIL", f"{p}: id 중복 {dups[:8]}")
+        for iid, name, typ, labelled in pg.inputs:
+            if not labelled and not (iid and iid in pg.label_for):
+                out("WARN", f"{p}: 라벨 없는 입력 {iid or name or typ}")
+        if pg.imgs_no_alt:
+            out("WARN", f"{p}: alt 없는 이미지 {pg.imgs_no_alt}개")
+        empty_btn = [b for b in pg.buttons if not b["text"] and not b["label"]]
+        if empty_btn:
+            out("WARN", f"{p}: 텍스트/aria-label 없는 버튼 {len(empty_btn)}개")
+        if not pg.viewport:
+            out("WARN", f"{p}: meta viewport 없음 (모바일 화면 깨질 수 있음)")
+
+        sources = [(f"inline#{n + 1}", code, mod) for n, (code, mod) in enumerate(pg.inline_js) if code.strip()]
+        for src, mod in pg.scripts:
+            u = urllib.parse.urljoin(base + p, src)
+            if urllib.parse.urlparse(u).netloc != urllib.parse.urlparse(base).netloc:
+                continue
+            sst, _, _, code, _ = request(opener, "GET", u)
+            if sst is None or sst >= 400:
+                out("FAIL", f"{p}: 스크립트 {src} 응답 {sst}")
+                continue
+            sources.append((src, code, mod))
+
+        referenced, urls = {}, {}
+        for name, code, mod in sources:
+            if has_node:
+                err = node_check(code, mod)
+                if err:
+                    out("FAIL", f"{p}: JS 문법 오류 {name}: {err}")
+            for pat in JS_ID_PATTERNS:
+                for m in re.findall(pat, code):
+                    referenced.setdefault(m, name)
+            for m in re.findall(JS_URL_PATTERN, code):
+                urls.setdefault(m, name)
+        missing = sorted(i for i in referenced if i not in idset)
+        for i in missing:
+            out("WARN", f"{p}: JS({referenced[i]})가 찾는 #{i} 가 HTML에 없음 (JS가 동적으로 만들면 무시)")
+        for u, name in sorted(urls.items()):
+            ust, *_ = request(opener, "GET", base + u)
+            if ust == 404:
+                out("FAIL", f"{p}: JS({name})가 부르는 {u} 가 404 (경로나 서버 라우트 확인)")
+        print(f"   ids={len(idset)} inputs={len(pg.inputs)} scripts={len(sources)} js_id_refs={len(referenced)} api_refs={len(urls)}"
+              + ("" if has_node else "  (node 없음: JS 문법 검사 생략)"))
+    print(f"ui: {fails} fail, {warns} warn ({len(paths)} pages)")
+    return 1 if fails else 0
+
+
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
         print(__doc__)
@@ -363,6 +559,8 @@ def main():
         return cmd_smoke(args)
     if cmd == "links":
         return cmd_links(args)
+    if cmd == "ui":
+        return cmd_ui(args)
     print(__doc__)
     return 2
 

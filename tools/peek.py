@@ -5,6 +5,7 @@
   python3 peek.py <경로> [<경로> ...]     요약
   python3 peek.py <파일> --lines 40:80    줄 범위만 출력 (줄번호 포함)
   python3 peek.py <폴더> --depth 3        트리 깊이 지정 (기본 2)
+  python3 peek.py app.db                  SQLite DB: 테이블, 컬럼 타입, 행 수, 인덱스, 샘플
   python3 peek.py --env                   실행 환경 점검
 """
 import argparse
@@ -13,6 +14,7 @@ import csv
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime
@@ -255,6 +257,39 @@ def peek_py(p):
             print(f"  L{node.lineno} if __name__ == '__main__'")
 
 
+# ---------- SQLite ----------
+def is_sqlite(p):
+    try:
+        with open(p, "rb") as f:
+            return f.read(16) == b"SQLite format 3\x00"
+    except OSError:
+        return False
+
+
+def peek_sqlite(p, n_samples):
+    con = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+    try:
+        objs = con.execute("SELECT name, type FROM sqlite_master WHERE type IN ('table','view') "
+                           "AND name NOT LIKE 'sqlite_%' ORDER BY type, name").fetchall()
+        print(f"[sqlite] {p}  size={human(p.stat().st_size)}  objects={len(objs)}")
+        for name, typ in objs:
+            cols = con.execute(f'PRAGMA table_info("{name}")').fetchall()
+            try:
+                cnt = con.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
+            except sqlite3.Error as e:
+                cnt = f"? ({e})"
+            colstr = ", ".join(f"{c[1]}:{c[2] or '?'}{' PK' if c[5] else ''}{' NN' if c[3] else ''}" for c in cols)
+            print(f"  {typ} {name} rows={cnt}")
+            print(f"    cols: {colstr}")
+            idx = con.execute(f'PRAGMA index_list("{name}")').fetchall()
+            if idx:
+                print("    indexes: " + ", ".join(f"{i[1]}{'(unique)' if i[2] else ''}" for i in idx))
+            for row in con.execute(f'SELECT * FROM "{name}" LIMIT {int(n_samples)}').fetchall():
+                print("    >", tuple(str(v)[:40] if isinstance(v, str) else v for v in row))
+    finally:
+        con.close()
+
+
 # ---------- 일반 텍스트 ----------
 def peek_text(p, head=25):
     size = p.stat().st_size
@@ -352,6 +387,8 @@ def main():
                 peek_json(p, a.n)
             elif p.suffix.lower() == ".py":
                 peek_py(p)
+            elif p.suffix.lower() in (".db", ".sqlite", ".sqlite3") or is_sqlite(p):
+                peek_sqlite(p, a.n)
             else:
                 peek_text(p, a.head)
         except Exception as e:  # 요약 실패해도 다음 경로는 계속

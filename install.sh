@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 어떻게 clone했든 아래 중 아무거나 실행하면 된다.
 #   bash .kit/install.sh          (git clone <주소> .kit 로 받은 경우)
-#   bash probe-kit/install.sh     (그냥 git clone <주소> 로 받은 경우)
-#   cd probe-kit && bash install.sh
+#   bash kit/install.sh           (그냥 git clone <주소> 로 받은 경우)
+#   cd kit && bash install.sh
 # 하는 일: 작업 폴더 루트 찾기, .kit 경로 맞추기, AGENTS.md는 루트에, 작업 문서는 work/에 복사(기존 파일은 안 덮어씀),
 #          .kit를 git 추적에서 제외, 환경 점검.
 set -u

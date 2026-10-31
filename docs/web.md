@@ -1,0 +1,11 @@
+# Web tasks (no browser automation)
+- Verify web features over HTTP with `python3 .kit/tools/webcheck.py` (stdlib, no browser, no screen control).
+  - `webcheck.py smoke <base> / /path` : status, title, forms, buttons, links of pages
+  - `webcheck.py links <base>` : broken links and static files
+  - `webcheck.py ui <base> / /path` : static UI check without a browser. JS-referenced ids missing from HTML, JS syntax (node --check), API paths called by JS that return 404, duplicate ids, unlabeled inputs, missing alt. Run it after every frontend change; FAIL lines must be fixed, WARN lines judged.
+  - Put feature checks in `work/webchecks.json` (example: `webcheck.py init`), one or more checks per done criterion, with the criterion id in the check name. Run via `python3 .kit/tools/t.py -- python3 .kit/tools/webcheck.py run work/webchecks.json` so results go to work/VERIFY.md.
+- Base URL is `http://127.0.0.1:<port>` of the server the user started. `[NO-SERVER]` means ask the user to start or restart the server; do not start it yourself.
+- Put non-trivial frontend logic (validation, formatting, sorting, state updates) in pure functions in a separate JS module and test them with `node --test` (no browser, no DOM).
+- JS-rendered UI and click flows cannot be checked over HTTP. For those, write a manual checklist for the user (see `.kit/prompts/6_manual.md`) and record the user's reported results in work/VERIFY.md as `MANUAL` lines.
+- Bind web servers to `0.0.0.0` and print the real port. localhost-only will not open in the Browser preview.
+- The user runs the server in another terminal: `<cmd> 2>&1 | tee work/server.log`. Read logs with `tail -n 30 work/server.log`.

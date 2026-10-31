@@ -1,160 +1,127 @@
-# probe-kit
+# kit
 
-Cofa-Probe 2차 예선용 개인 준비물. 문제나 정답은 없음. Python 표준 라이브러리만 사용.
+Codex용 작업 하네스. 규칙(AGENTS.md), 작업 문서 템플릿, 단계별 지시 카드, 검증 도구로 구성된다. 도구는 Python 표준 라이브러리만 사용한다.
 
-## 세팅 (이것만 기억)
+## Setup
 
-과제 폴더(README.md 있는 곳)에서:
-
-```
-git clone https://github.com/<아이디>/probe-kit .kit && bash .kit/install.sh
-```
-
-그다음 `codex`. 끝.
-
-까먹고 그냥 `git clone https://github.com/<아이디>/probe-kit` 했어도 괜찮음:
-- 과제 폴더에서 `bash probe-kit/install.sh`
-- 또는 `cd probe-kit && bash install.sh` 후 `cd ..`
-
-어떻게 받았든 install.sh가 작업 폴더를 찾고, 키트 폴더 이름을 `.kit`(숨김 폴더)로 바꿔줌. 여러 번 실행해도 기존 파일은 안 덮어씀.
-codex를 먼저 켜버렸으면 install 후 codex를 껐다 다시 켜기 (AGENTS.md는 시작할 때만 읽음).
-
-설치 후 구조 (루트에는 AGENTS.md만 추가됨):
+과제 루트(README.md가 있는 폴더)에서:
 
 ```
-과제폴더/
-  AGENTS.md          Codex가 자동으로 읽는 규칙
-  README.md ...      과제 파일들 (그대로)
+git clone https://github.com/H4RUming/kit .kit && bash .kit/install.sh
+```
+
+`.kit` 없이 받았으면 `bash kit/install.sh`. install.sh가 작업 폴더를 찾아 키트를 `.kit`로 옮기고, 템플릿을 복사하고(기존 파일은 유지), `.kit`를 git 추적에서 제외하고, 환경을 점검한다.
+
+이후 `head -3 AGENTS.md`로 `# Agent Rules`를 확인하고 `codex`를 실행한다. AGENTS.md는 세션 시작 때만 읽히므로, codex를 먼저 켰다면 재시작한다.
+
+확인용 첫 메시지:
+```
+파일 만들지 말고 아무것도 실행하지 마. AGENTS.md의 Hard rules 번호랑 제목만 한국어로 나열해
+```
+
+## Layout
+
+```
+<task root>/
+  AGENTS.md         Codex 규칙 (자동 로드)
   work/
-    TASK.md          과제 계약서
-    DECISIONS.md     결정 기록
-    HANDOFF.md       인계 문서
-    VERIFY.md        테스트와 수동 확인 기록 (t.py가 자동 생성)
-    webchecks.json   웹 기능 체크 (웹 과제일 때)
-    server.log       서버 로그 (tee로 저장)
-  .kit/              도구 (숨김)
+    TASK.md         요구사항, 제약, 가정, 완료 조건, 변경 이력
+    DECISIONS.md    결정과 근거 (직접 작성)
+    HANDOFF.md      세션 인계
+    VERIFY.md       검증 기록 (t.py가 생성)
+    webchecks.json  웹 기능 체크
+    server.log
+  .kit/
+    tools/          peek, t, q, webcheck, dbcheck
+    prompts/        지시 카드
+    docs/           web, db, auth, minimal 세부 규칙
 ```
 
-## 구성
+AGENTS.md는 Hard rules, 작업 흐름, 토큰 규칙만 담는다. 세부 규칙은 `.kit/docs/`에 두고 해당 작업일 때만 읽게 한다.
 
-- templates/AGENTS.md: Codex 작업 규칙. 합의 전 구현 금지, 토큰 규칙, 검증, 기록, 최소 변경 원칙(Ponytail에서 발췌, MIT)
-- templates/TASK.md, DECISIONS.md, HANDOFF.md: 과제 계약서, 결정 기록, 인계 문서. 설치하면 `work/`에 복사됨
-- tools/peek.py: 폴더 트리, CSV 컬럼 타입/결측/범위, JSON 구조, .py 함수 목록, 줄 범위 출력, `--env` 환경 점검
-- tools/t.py: 테스트 실행 후 요약만 출력. 실패 시 마지막 40줄. work/VERIFY.md에 자동 기록. 테스트 0개나 전부 skip이면 exit 2. 바뀐 파일이 없으면 다시 안 돌리고 `[SAME]`, 코드를 바꿨는데 같은 실패가 반복되면 `[경고]`
-- tools/webcheck.py: 브라우저 없이 HTTP로 웹 기능 확인. `smoke`(페이지 요약), `links`(깨진 링크와 정적 파일), `run work/webchecks.json`(기능 체크, t.py로 돌리면 work/VERIFY.md 기록), `init`(스펙 예시). 화면 조작이 아니라서 Computer Use에 해당하지 않음
-- tools/q.py: 출력이 긴 명령(설치, 빌드, 스크립트)을 돌리고 전체 로그는 `.kit/.state/logs/`에 저장. 화면에는 종료 코드, 에러로 보이는 줄, 마지막 몇 줄만
-- install.sh: 템플릿 복사, `.kit/`를 git 추적에서 제외, 환경 점검
-- prompts/: 단계별 지시 카드. 붙여넣지 말고 `.kit/prompts/3_review.md 읽고 그대로 해`처럼 파일을 가리키면 됨
-  - 1_kickoff: README 읽고 work/TASK.md 초안, README와 데이터의 빈틈 최대 5개 (질문은 내가 직접, 코드 금지)
-  - 2_build: 완료 조건 하나만 구현, 계획 3줄 먼저, t.py 통과하면 커밋하고 멈춤. `[C?]`를 조건 번호로 바꿔서 지시
-  - 3_review: 수정 없이 diff 검토만. 누락, 경계값, 과설계, 문서와 코드 불일치. 새 세션에서 돌리면 편향이 덜함
-  - 4_handoff: work/HANDOFF.md 갱신 후 새 세션으로 넘어갈 때
-  - 5_presubmit: 필수 파일 확인, 한계 최신화, 예상 서술형 질문 6개 (답은 본인이 머릿속으로)
-  - 6_manual: webcheck로 못 보는 화면/클릭 동작을 내가 Browser에서 확인할 체크리스트 (최대 5단계). 결과를 알려주면 work/VERIFY.md에 MANUAL로 기록
+## Workflow
 
-## 오늘 밤 (시험 전)
+| 시점 | 입력 | 동작 |
+|---|---|---|
+| 시작 | `킥오프` | README에서 요구사항(출처 줄 번호)과 제약 추출, TASK 초안, 빈틈 5개 |
+| 인터뷰 후 | `TASK.md 확정. 담당자 답변 반영해` | 확정 |
+| 조건마다 | `C1 진행` | 계획 3줄, 뼈대 확인, 구현, 해당 조건 테스트, 커밋, 3줄 설명 후 정지 |
+| 설명 받은 뒤 | (직접) DECISIONS.md에 한 줄 | |
+| 조건 2~3개마다 | `리뷰` | 수정 없이 검토 |
+| 화면 확인 | `수동확인 C3` | Browser 체크리스트, 결과를 VERIFY에 MANUAL로 기록 |
+| 컨텍스트 절반 | `핸드오프` | HANDOFF 전체 갱신, 새 세션 첫 문장 |
+| 150분 | `제출점검` | 필수 파일, 한계 정리, 예상 질문 6개 |
 
-1. GitHub에 public 레포 `probe-kit` 생성 후 이 폴더 그대로 push. 키, 토큰, 개인정보 넣지 말 것
-2. 아무 빈 폴더에서 `git clone <레포 주소> .kit && bash .kit/install.sh` 돌아가는지 확인
-3. Codex 설치해서 작은 과제 하나로 리허설. AGENTS.md를 실제로 읽는지 `AGENTS.md 규칙 세 줄로 요약해봐`로 확인
+조건마다 HANDOFF의 "현재 상태"는 자동 갱신된다. t.py가 `[경고]`를 내면 Codex가 멈추고 가설 2개를 보고한다.
 
-## 사전 체험 15분 (링크 받은 뒤 과제 시작 전 1회, 연습 문제라 평가 미반영)
+## Tools
 
-실제 응시 장소와 장비, 휴대폰까지 연결한 상태로 진행.
-1. (2분) 터미널에서 `git clone <레포 주소> .kit && bash .kit/install.sh`. clone 되는지, Python 버전, pytest 유무 확인
-2. (1분) `node --version`
-3. (3분) `codex` 실행, `/status`, `/model`로 모델 목록과 응답 속도 확인. `AGENTS.md 규칙 세 줄로 요약해봐`로 실제로 읽는지 확인
-4. (2분) `python3 -m http.server 8000 --bind 0.0.0.0` 띄우고 Browser 도구에서 PORT 8000으로 열리는지 확인
-5. (2분) Cofa Helper에게 질문: 공개 Skill 적용 방법, 작업 폴더 밖에 clone해도 되는지
-6. (남은 시간) Proctor 구도와 연결 유지 확인, 체험 종료 후 예시 서술형 풀어보기
+```
+python3 .kit/tools/peek.py <path>            폴더 트리, CSV 컬럼 타입/결측/범위, JSON 구조, .py 심볼, SQLite 스키마
+python3 .kit/tools/peek.py <file> --lines 40:80
+python3 .kit/tools/peek.py --env             Python, Node, 패키지, 디스크, git
 
-## 시험 당일 순서
+python3 .kit/tools/t.py                      테스트 자동 감지, 요약 출력, VERIFY 기록
+python3 .kit/tools/t.py --note C3 -- python3 -m pytest -q -k C3_
+python3 .kit/tools/q.py -- <cmd>             긴 출력 명령. 로그는 .kit/.state/logs/
 
-1. 과제 폴더 루트에서: `git clone <레포 주소> .kit && bash .kit/install.sh`
-   (README에 clone 위치 제한이 있으면 그걸 따름)
-2. 환경 점검 결과 확인: Python 버전, pytest/pandas 유무, Node 유무
-3. `codex` 실행, `/status`로 모델과 권한 확인
-4. `AGENTS.md 규칙 세 줄로 요약해봐`로 규칙을 읽었는지 확인
-5. `.kit/prompts/1_kickoff.md 읽고 그대로 해`
-6. 담당자 에이전트에게 직접 질문하고, 답을 work/TASK.md "확인된 사실"과 "담당자 확인"에 반영
-7. 조건마다 `.kit/prompts/2_build.md 읽고 C1으로 해` 반복. 큰 조건이 끝나면 3_review
-8. 대화가 길어지면 4_handoff 후 새 세션, 제출 전 5_presubmit
+python3 .kit/tools/webcheck.py smoke <base> / /path
+python3 .kit/tools/webcheck.py links <base>
+python3 .kit/tools/webcheck.py ui <base> / /path
+python3 .kit/tools/webcheck.py run work/webchecks.json
+python3 .kit/tools/webcheck.py init
 
-## 서버 띄우기 (내가 직접)
+python3 .kit/tools/dbcheck.py reconcile data.csv app.db <table> --key id
+python3 .kit/tools/dbcheck.py query app.db "SELECT ..."
+```
 
-새 터미널 탭(+)을 열고 서버 전용으로 쓴다. 이 탭은 닫지 않는다.
+t.py 출력: `[PASS]`, `[FAIL]`, `[NO-TESTS]`(0개 또는 전부 skip), `[SAME]`(변경 없음, 재실행 안 함), `[경고]`(코드 변경 후 같은 실패 반복). webcheck는 서버 상태에 의존하므로 `[SAME]` 캐시를 쓰지 않는다.
+
+webcheck는 HTTP 요청만 보내며 브라우저를 조작하지 않는다. 스펙에서 `{run}`은 실행마다 바뀌는 값, `{env:NAME}`은 환경변수(출력 시 마스킹)다. 쿠키는 체크 사이에 유지된다.
+
+## Server
+
+별도 터미널 탭에서:
 
 ```
 python3 app.py 2>&1 | tee work/server.log
 ```
 
-- `app.py` 자리에 실제 실행 파일이나 명령을 넣는다 (예: `python3 -m uvicorn main:app --host 0.0.0.0 --port 8000`)
-- 서버는 `0.0.0.0`에 바인딩해야 Browser 미리보기에서 열린다
-- 터미널에 찍힌 실제 포트를 Browser 도구의 PORT 칸에 넣고 원형 화살표
-- Codex에게는 `서버 로그는 work/server.log에 있어. tail -n 30으로 봐`라고 알려준다
-- 끌 때는 그 탭에서 Ctrl+C (선택 영역이 없는 상태에서)
+`0.0.0.0`에 바인딩해야 Browser 미리보기에서 열린다. 터미널에 찍힌 포트를 Browser의 PORT에 넣는다. 종료는 해당 탭에서 Ctrl+C.
 
-## 웹 과제 검증 흐름
+환경변수 확인은 값을 출력하지 않는다: `test -n "$NAME" && echo set`
 
-1. 내가 서버 띄우기 (위 섹션)
-2. `python3 .kit/tools/webcheck.py smoke http://127.0.0.1:<포트> /` 로 페이지가 뜨는지, 폼과 버튼이 있는지
-3. Codex에게: `C2 완료 조건을 work/webchecks.json에 체크로 추가하고 t.py로 webcheck run 돌려`
-4. JS 화면이나 클릭 흐름은: `.kit/prompts/6_manual.md 읽고 C2로 해` 후 Browser에서 직접 확인하고 결과를 알려주기
-5. 서버 코드를 고쳤으면 서버 재시작 후 다시 run (webcheck는 [SAME] 캐시를 안 씀)
+Browser 미리보기에서 로그인이 유지되지 않으면 미리보기가 다른 도메인으로 임베드되어 세션 쿠키가 제3자 쿠키로 처리되는 경우가 많다. 로그인 흐름은 webcheck로 검증하고, 쿠키 설정 변경은 담당자 확인 후에만 한다.
 
-## 토큰 운영 규칙 (사람 쪽)
+## Interview
 
-Codex는 매 턴 그 세션의 대화 전체를 다시 입력으로 보낸다. 세션이 길수록 한 턴이 비싸진다.
+README에 있는 내용은 묻지 않는다. 킥오프가 짚은 빈틈부터 시작해 아래 항목에서 빠진 것을 확인한다.
 
-- 세션을 단계별로 끊기: 인터뷰와 합의, 조건 2~3개 구현, 리뷰를 각각 다른 세션으로. 넘어갈 때 4_handoff
-- 지시를 구체적으로: 파일, 함수, 완료 조건 번호를 찍어주면 탐색이 줄어든다. "계속", "다시 해봐"만 반복하지 않기
-- 실패하면 바로 재시도시키지 말고 원인부터 묻기: `왜 실패했는지 가설만 말해. 고치지 마`
-- 내가 직접 할 수 있는 건 두 번째 터미널에서: `ls`, 작은 파일 확인, `python3 .kit/tools/t.py`, 서버 실행. Codex 대화에 안 들어가니 토큰이 안 들고, 터미널 기록은 평가에 남음
-- reasoning effort: 단순 수정은 낮게, 설계와 디버깅은 높게. `/model`에서 바꾸는 방법은 사전 체험 때 확인
-- 같은 행동을 반복하면 바로 중단시키고 방향을 다시 지시. 중단 키(Esc 또는 Ctrl+C)는 사전 체험 때 확인
-- `/status`에 토큰 사용량이 보이면 단계가 끝날 때마다 확인
+- 경계값: 같을 때, 이상/초과, 포함/제외
+- 빈 값, 형식 오류, 음수, 과도한 길이
+- 중복 데이터, 중복 요청
+- 시간대, 날짜 형식, 마감 경계
+- 권한: 역할별로 보고 바꿀 수 있는 것, 비로그인
+- 실패 시 동작, 부분 실패
+- 데이터 규모
+- 요구사항 충돌 시 우선순위
 
-## 담당자에게 물을 것 (순서대로)
+마지막에 요약해서 확인받는다.
 
-- 지금 이 일을 실제로 어떻게 하고 있는지, 최근에 문제가 됐던 구체적인 사례
-- 지금은 어떻게 우회하고 있는지, 시간이나 비용이 얼마나 드는지
-- 누가 쓰는지, 결과를 누가 받는지
-- 성공 기준: 어떤 숫자가 얼마가 되면 성공인지, 그걸 어디서 확인하는지
-- 입력 데이터의 진짜 출처, 형식, 빠지거나 틀린 값이 있는지
-- 경계값과 예외: 같으면 통과인지, 시간대, 중복, 빈 값
-- 하면 안 되는 것, 바꾸면 안 되는 것
-- 우선순위: 시간이 모자라면 무엇부터 할지
-- 막히면: "제가 뭘 더 물어봐야 하나요?" (답할 수 있는 범위를 알려준다고 함)
+## Time
 
-## 시간 배분 (180분)
-
-| 경과 | 할 일 |
+| 경과 | |
 |---|---|
-| 0~25분 | 설치, README, 담당자 인터뷰, work/TASK.md 확정 |
-| 25~140분 | 조건 단위로 구현, t.py 검증, 커밋 반복. 100분에 범위 재점검 |
-| 140분 | 기능 동결. 버그 수정과 검증만 |
-| 150분 | work/HANDOFF.md, work/DECISIONS.md 정리. 직접 읽으면서 서술형 대비 |
-| 165분 | 제출 시작 (공식 권고: 종료 약 10분 전) |
+| 0~25분 | 설치, 킥오프, 인터뷰, TASK 확정 |
+| 25~140분 | 조건 단위 구현과 검증. 100분에 범위 점검 |
+| 140분 | 기능 동결 |
+| 150분 | 제출점검, DECISIONS와 HANDOFF 직접 읽기 |
+| 165분 | 제출 |
 
-## 서술형 대비 (문항당 5분, 문항 수는 응시 화면 기준)
+## Follow-up answers
 
-확정 후 질문 생성에 최대 10분 대기. 제출물과 작업 기록을 바탕으로 문항이 나옴. AI와 복붙 금지, 이전 문항으로 못 돌아감, 시간이 끝나면 입력한 내용으로 자동 확정. 답은 이 순서로:
-1. 내가 내린 결정과 근거 (work/DECISIONS.md)
-2. 내 코드의 구체적인 약점이나 한계
-3. 그게 왜 위험한지, 어떤 입력에서 깨지는지
-4. 다음에 무엇을 검증하고 고칠지
+결정과 근거, 구체적인 약점, 그 약점이 깨지는 조건, 다음 검증 계획 순서로 쓴다. 확실하지 않으면 검증하지 못한 부분과 확인 방법을 명시한다.
 
-제출 전에 work/HANDOFF.md의 "알려진 한계와 위험"을 꼭 직접 읽어둘 것.
+## Credits
 
-## 세션 관리
-
-대화가 길어지면 compact를 반복하지 말고:
-`work/HANDOFF.md 갱신해` 후 새 세션에서 `work/HANDOFF.md, work/TASK.md, work/DECISIONS.md만 읽고 이어가`.
-
-관제: `너는 관제 역할이야. work/ 문서만 수정하고 코드는 건드리지 마. 계획, 리뷰, 결정 기록 담당.`
-구현: `너는 구현 역할이야. work/TASK.md 기준으로 소스 코드만 수정해. 2_build 카드 방식으로.`
-테스트: `너는 테스트 역할이야. work/TASK.md 완료 조건만 보고 tests/test_spec.py만 작성해. 구현 코드는 읽지 마.`
-
-## 출처
-
-최소 변경 원칙은 Ponytail(https://github.com/DietrichGebert/ponytail, MIT License, Copyright (c) 2026 DietrichGebert)의 AGENTS.md를 요약 번역함.
+`docs/minimal.md`와 AGENTS.md의 Minimal change는 [Ponytail](https://github.com/DietrichGebert/ponytail)(MIT, Copyright (c) 2026 DietrichGebert)의 AGENTS.md를 요약 번역했다. 라이선스 전문은 THIRD_PARTY_LICENSES.md.

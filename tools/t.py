@@ -126,7 +126,7 @@ def summarize(cmd, code, out):
         if code == 0 and "skipped=" in tail and re.search(rf"skipped={n}\b", tail):
             return "NO-TESTS", f"Ran {n}, 전부 skip"
         return ("PASS" if code == 0 else "FAIL"), f"Ran {n} tests {tail}".strip()
-    if code == 2 and "webcheck" in " ".join(cmd):
+    if code == 2 and ("webcheck" in " ".join(cmd) or "dbcheck" in " ".join(cmd)):
         return "NO-TESTS", (lines[-1] if lines else "webcheck: 체크 0개 또는 서버 응답 없음")
     return ("PASS" if code == 0 else "FAIL"), (lines[-1] if lines else "(출력 없음)")
 

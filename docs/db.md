@@ -1,0 +1,8 @@
+# Data and DB tasks
+- Never test against the shared live DB or the full dataset in the fast loop. Each test gets a fresh DB (sqlite `:memory:` or `tmp_path`) seeded from a small fixture CSV (about 10 to 30 rows) that includes edge cases: empty values, duplicates, boundary values, bad formats.
+- Split tests: fast unit tests (parsing, validation, calculations as pure functions) run on every change. Mark slow ones (full import, real files, HTTP) with `@pytest.mark.slow` and run them only at milestones (register the marker once in `pytest.ini`: `[pytest]` / `markers = slow: slow tests`): `python3 .kit/tools/t.py -- python3 -m pytest -q -m "not slow"` for the fast loop, plain `t.py` for everything.
+- After importing CSV into a DB, verify with `python3 .kit/tools/t.py -- python3 .kit/tools/dbcheck.py reconcile <csv> <db> <table> --key <id>` (row count, nulls, sums, min/max, distinct, missing/extra keys). If rows are intentionally filtered, use `--expect-rows N` and record the filter rule in work/DECISIONS.md.
+- Inspect a DB with `peek.py <file.db>` or `dbcheck.py query <db> "SELECT ..."` (read-only, row-capped). Do not dump tables.
+- Check expected numbers with an independent method (a different query, a hand-checked fixture) rather than re-running the same code that produced them.
+- In webchecks.json use `{run}` in created values (e.g. `"name": "item-{run}"`) so repeated runs against the same DB do not collide, and avoid asserting absolute counts that depend on leftover data.
+- Avoid loading huge data at once or running several heavy processes. Out-of-memory kills are not compensated.
