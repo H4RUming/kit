@@ -151,6 +151,10 @@ Codex는 매 턴 그 세션의 대화 전체를 다시 입력으로 보낸다. �
 대화가 길어지면 compact를 반복하지 말고:
 `work/HANDOFF.md 갱신해` 후 새 세션에서 `work/HANDOFF.md, work/TASK.md, work/DECISIONS.md만 읽고 이어가`.
 
+관제: `너는 관제 역할이야. work/ 문서만 수정하고 코드는 건드리지 마. 계획, 리뷰, 결정 기록 담당.`
+구현: `너는 구현 역할이야. work/TASK.md 기준으로 소스 코드만 수정해. 2_build 카드 방식으로.`
+테스트: `너는 테스트 역할이야. work/TASK.md 완료 조건만 보고 tests/test_spec.py만 작성해. 구현 코드는 읽지 마.`
+
 ## 출처
 
 최소 변경 원칙은 Ponytail(https://github.com/DietrichGebert/ponytail, MIT License, Copyright (c) 2026 DietrichGebert)의 AGENTS.md를 요약 번역함.
