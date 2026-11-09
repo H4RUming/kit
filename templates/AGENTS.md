@@ -18,6 +18,7 @@ Reply to the user in Korean. Keep all work documents in `work/` (TASK, DECISIONS
 - `핸드오프` : `.kit/prompts/4_handoff.md`
 - `제출점검` : `.kit/prompts/5_presubmit.md`
 - `수동확인 C3` : `.kit/prompts/6_manual.md` for that criterion
+- `분리` : `.kit/prompts/7_split.md`
 
 ## Read when relevant (once per session)
 - Web pages, APIs, frontend: `.kit/docs/web.md`
@@ -26,8 +27,8 @@ Reply to the user in Korean. Keep all work documents in `work/` (TASK, DECISIONS
 
 ## Workflow
 1. Read the task README. For unfamiliar files, data or folders run `python3 .kit/tools/peek.py <path>` and open only what you need.
-2. Fill work/TASK.md: requirements with source, every constraint category ("없음" if none), assumptions, small done criteria (5 to 10 min each) with a verification method. If the task names required documents or files, write there instead of duplicating.
-3. One criterion at a time: plan in 3 lines, show a short skeleton (names, inputs/outputs, data flow), wait for confirmation, then implement.
+2. Fill work/TASK.md: requirements with source, every constraint category ("없음" if none), assumptions, small done criteria (5 to 10 min each) with a verification method. If the task names required documents or files, write there instead of duplicating. If parts can be built in parallel, fix the interface between them first. C0 is always a thin end-to-end version on fake data.
+3. One criterion at a time (after `분리`, only your track's criteria and files; commit by path): plan in 3 lines, show a short skeleton (names, inputs/outputs, data flow), wait for confirmation, then implement.
 4. Test only that criterion: `python3 .kit/tools/t.py --note "C3" -- python3 -m pytest -q -k C3_` (name tests `test_C3_...`). Full suite (`python3 .kit/tools/t.py`) every 2 to 3 criteria.
 5. When it passes: local commit, mark 완료 in TASK.md, explain in 3 lines (what changed, why vs the alternative, where it could break), STOP. The user writes DECISIONS.md. No git repo: ask before `git init`.
 6. If requirements change, update TASK.md and its change log BEFORE code.
