@@ -2,6 +2,8 @@
 
 Codex용 작업 하네스. 규칙(AGENTS.md), 작업 문서 템플릿, 단계별 지시 카드, 검증 도구로 구성된다. 도구는 Python 표준 라이브러리만 사용한다.
 
+SK하이닉스 AI 해커톤 2026 2차 예선(Cofa-Probe) 대비용으로 만들었다. 실전 두 번 응시 후 무엇이 통했고 무엇을 바꿀지는 [회고](retro/2026-skhynix-hackathon.md)에 정리했다.
+
 ## Setup
 
 과제 루트(README.md가 있는 폴더)에서:
